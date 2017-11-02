@@ -15,10 +15,15 @@ before_install:
   fi
 # [START auth]
 # Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
-- openssl aes-256-cbc -K $encrypted_45d1b36fa803_key -iv $encrypted_45d1b36fa803_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d
+- openssl aes-256-cbc -K $encrypted_c6f2a6344efa_key -iv $encrypted_c6f2a6344efa_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d 
 # If the SDK is not already cached, download it and unpack it
 - if [ ! -d ${HOME}/google-cloud-sdk ]; then
-     curl https://sdk.cloud.google.com | bash;
+     export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)";
+     echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list;
+     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -;
+     sudo apt-get update && sudo apt-get -y install google-cloud-sdk;
+     sudo apt-get install google-cloud-sdk-app-engine-python;
+     exec -l $SHELL;
   fi
 - tar -xzf credentials.tar.gz
 - mkdir -p lib
@@ -27,8 +32,7 @@ before_install:
 # [END auth]
 install:
 # Set the correct project to deploy to
-- gcloud config set project continuous-deployment-python
-- gcloud -q components update gae-python
+- gcloud config set project my-travis-demo-184807
 # Install the Python dependencies
 - pip install -r requirements.txt -t lib/
 script:
@@ -36,7 +40,8 @@ script:
 - python test_main.py
 # [START deploy]
 # Deploy the app
-- gcloud -q preview app deploy app.yaml --promote
+# - gcloud -q preview app deploy app.yaml --promote
+- gcloud app deploy app.yaml --project my-travis-demo-184807
 # Run and end to end test
 - python e2e_test.py
 # [END deploy]
